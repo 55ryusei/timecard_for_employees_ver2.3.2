@@ -1432,13 +1432,17 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
           item.appendChild(infoSpan);
           
           item.addEventListener('click', () => {
-            input.value = name;
-            hideDropdown(dropdownId);
-            updateButtons(name);
-            if (inputId === 'searchEmpName') {
-              displayEmpRecords();
-            }
-          });
+          input.value = name;
+          hideDropdown(dropdownId);
+  
+          if (inputId === 'empName') {
+    // 出勤・退勤フィールドの場合：選択した名前でボタン状態を更新
+          updateButtons(name);
+         } else if (inputId === 'searchEmpName') {
+    // 検索フィールドの場合：検索結果のみ更新、ボタン状態は変更しない
+          displayEmpRecords();
+        }
+      });
           
           dropdown.appendChild(item);
         });
