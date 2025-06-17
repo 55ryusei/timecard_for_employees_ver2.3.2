@@ -495,6 +495,13 @@
         0 4px 12px rgba(0, 0, 0, 0.02),
         0 1px 4px rgba(0, 0, 0, 0.01),
         inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      /* iPad の長押しメニューを無効化 */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .record:hover {
@@ -1421,14 +1428,33 @@
     function addLongPressToRecord(element, name, date, recordIndex) {
       let pressTimer = null;
       let isLongPress = false;
+      let startCoords = { x: 0, y: 0 };
       
-      const startPress = () => {
+      const startPress = (e) => {
+        // iPad のテキスト選択を防ぐ
+        e.preventDefault();
+        
         isLongPress = false;
         element.classList.add('long-pressing');
+        
+        // タッチ座標を記録
+        if (e.touches) {
+          startCoords.x = e.touches[0].clientX;
+          startCoords.y = e.touches[0].clientY;
+        } else {
+          startCoords.x = e.clientX;
+          startCoords.y = e.clientY;
+        }
+        
         pressTimer = setTimeout(() => {
           isLongPress = true;
           element.classList.remove('long-pressing');
           showDeleteButton(element, name, date, recordIndex);
+          
+          // 触覚フィードバック（対応デバイスのみ）
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
         }, 3000); // 3秒
       };
       
@@ -1437,15 +1463,39 @@
         element.classList.remove('long-pressing');
       };
       
-      // タッチイベント
-      element.addEventListener('touchstart', startPress, { passive: true });
-      element.addEventListener('touchend', endPress);
-      element.addEventListener('touchmove', endPress);
+      const moveHandler = (e) => {
+        // 指が大きく動いた場合は長押しをキャンセル
+        let currentX, currentY;
+        if (e.touches) {
+          currentX = e.touches[0].clientX;
+          currentY = e.touches[0].clientY;
+        } else {
+          currentX = e.clientX;
+          currentY = e.clientY;
+        }
+        
+        const distance = Math.sqrt(
+          Math.pow(currentX - startCoords.x, 2) + 
+          Math.pow(currentY - startCoords.y, 2)
+        );
+        
+        // 20px以上動いたらキャンセル
+        if (distance > 20) {
+          endPress();
+        }
+      };
       
-      // マウスイベント
+      // タッチイベント（iPad対応）
+      element.addEventListener('touchstart', startPress, { passive: false });
+      element.addEventListener('touchend', endPress, { passive: true });
+      element.addEventListener('touchmove', moveHandler, { passive: true });
+      element.addEventListener('touchcancel', endPress, { passive: true });
+      
+      // マウスイベント（デスクトップ用）
       element.addEventListener('mousedown', startPress);
       element.addEventListener('mouseup', endPress);
       element.addEventListener('mouseleave', endPress);
+      element.addEventListener('mousemove', moveHandler);
       
       // クリックイベントを無効化（長押し後）
       element.addEventListener('click', (e) => {
@@ -1453,6 +1503,11 @@
           e.preventDefault();
           e.stopPropagation();
         }
+      });
+      
+      // コンテキストメニューを無効化（右クリック防止）
+      element.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
       });
     }
 
