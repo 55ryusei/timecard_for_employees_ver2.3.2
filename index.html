@@ -195,17 +195,37 @@
         0 0 0 1px rgba(255, 255, 255, 0.4);
       z-index: 1000;
       max-height: 280px;
-      overflow-y: auto;
+      overflow-x: hidden; /* 横スクロール無効 */
+      overflow-y: auto; /* 縦スクロールのみ有効 */
       display: none;
       margin-top: 4px;
       animation: slideDown 0.3s ease-out;
-      /* スクロールバーを非表示にする */
-      scrollbar-width: none; /* Firefox */
-      -ms-overflow-style: none; /* IE and Edge */
+      /* 縦スクロールバーのみ薄く表示 */
+      scrollbar-width: thin; /* Firefox */
+      scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* Firefox */
     }
 
-    /* WebKit系ブラウザのスクロールバーを非表示 */
+    /* WebKit系ブラウザの縦スクロールバーのみ */
     .dropdown-menu::-webkit-scrollbar {
+      width: 6px; /* 縦スクロールバーの幅 */
+      height: 0; /* 横スクロールバーを完全に無効 */
+    }
+
+    .dropdown-menu::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .dropdown-menu::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    .dropdown-menu::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* 横スクロールバーを完全に無効化 */
+    .dropdown-menu::-webkit-scrollbar:horizontal {
       display: none;
     }
 
@@ -1284,11 +1304,26 @@
       return 0;
     }
 
-    // 既存の名前リストを取得
+    // 既存の名前リストを取得（最新記録順）
     function getExistingNames() {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      const names = Object.keys(data).sort();
-      return names;
+      const names = Object.keys(data);
+      
+      // 各名前の最新記録日を取得してソート
+      const namesWithLastDate = names.map(name => {
+        const dates = Object.keys(data[name]).sort(); // 日付をソート
+        const lastDate = dates[dates.length - 1]; // 最新の日付
+        return { name, lastDate };
+      });
+      
+      // 最新記録日の降順でソート（新しい順）
+      namesWithLastDate.sort((a, b) => {
+        if (!a.lastDate) return 1;
+        if (!b.lastDate) return -1;
+        return b.lastDate.localeCompare(a.lastDate);
+      });
+      
+      return namesWithLastDate.map(item => item.name);
     }
 
     // ドロップダウンメニューを表示
@@ -1431,6 +1466,11 @@
       let startCoords = { x: 0, y: 0 };
       
       const startPress = (e) => {
+        // 削除ボタンがクリックされた場合は長押し処理をスキップ
+        if (e.target.classList.contains('delete-btn')) {
+          return;
+        }
+        
         // iPad のテキスト選択を防ぐ
         e.preventDefault();
         
@@ -1458,12 +1498,22 @@
         }, 3000); // 3秒
       };
       
-      const endPress = () => {
+      const endPress = (e) => {
+        // 削除ボタンがクリックされた場合は処理をスキップ
+        if (e && e.target && e.target.classList.contains('delete-btn')) {
+          return;
+        }
+        
         clearTimeout(pressTimer);
         element.classList.remove('long-pressing');
       };
       
       const moveHandler = (e) => {
+        // 削除ボタンがある場合は移動判定をスキップ
+        if (element.querySelector('.delete-btn')) {
+          return;
+        }
+        
         // 指が大きく動いた場合は長押しをキャンセル
         let currentX, currentY;
         if (e.touches) {
@@ -1497,9 +1547,9 @@
       element.addEventListener('mouseleave', endPress);
       element.addEventListener('mousemove', moveHandler);
       
-      // クリックイベントを無効化（長押し後）
+      // クリックイベントを無効化（長押し後、ただし削除ボタン以外）
       element.addEventListener('click', (e) => {
-        if (isLongPress) {
+        if (isLongPress && !e.target.classList.contains('delete-btn')) {
           e.preventDefault();
           e.stopPropagation();
         }
@@ -1523,13 +1573,30 @@
       deleteBtn.className = 'delete-btn';
       deleteBtn.textContent = '削除';
       
-      deleteBtn.addEventListener('click', (e) => {
+      // 削除ボタンのイベント処理を強化
+      const handleDeleteClick = (e) => {
+        e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
+        
         showConfirmDialog(
           'この勤怠記録を削除しますか？<br>この操作は取り消せません。',
           () => deleteRecord(name, date, recordIndex)
         );
-      });
+      };
+      
+      // 複数のイベントタイプで確実にキャッチ
+      deleteBtn.addEventListener('click', handleDeleteClick, true);
+      deleteBtn.addEventListener('touchend', handleDeleteClick, true);
+      
+      // 削除ボタン自体の長押しやドラッグを防ぐ
+      deleteBtn.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      }, true);
+      
+      deleteBtn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      }, true);
       
       recordElement.appendChild(deleteBtn);
       
