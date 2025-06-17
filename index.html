@@ -1910,57 +1910,62 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
             searchedNames.push(name);
           }
           
-          Object.keys(data[name]).sort().reverse().forEach(date => {
-            data[name][date].forEach((rec, recordIndex) => {
-              if (rec.checkIn) {
-                hasRecords = true;
-                const div = document.createElement('div');
-                div.className = 'record';
-                
-                const info = document.createElement('div');
-                info.className = 'record-info';
-                
-                const nameDiv = document.createElement('div');
-                nameDiv.className = 'record-name';
-                nameDiv.textContent = name;
-                
-                const timeDiv = document.createElement('div');
-                timeDiv.className = 'record-time';
-                timeDiv.textContent = `${date} ${rec.checkIn}${rec.checkOut ? ` - ${rec.checkOut}` : ''}`;
-                
-                info.appendChild(nameDiv);
-                info.appendChild(timeDiv);
-                
-                const badge = document.createElement('div');
-                
-                // 日付チェックを追加
-                const isToday = date === today;
-                let statusClass, statusText;
-                
-                if (rec.checkOut) {
-                  statusClass = 'status-completed';
-                  statusText = '完了';
-                } else if (isToday) {
-                  statusClass = 'status-working';
-                  statusText = '勤務中';
-                } else {
-                  statusClass = 'status-overtime';
-                  statusText = '要確認';
-                }
-                
-                badge.className = `status-badge ${statusClass}`;
-                badge.textContent = statusText;
-                
-                div.appendChild(info);
-                div.appendChild(badge);
-                
-                // 長押し機能を追加
-                addLongPressToRecord(div, name, date, recordIndex);
-                
-                container.appendChild(div);
-              }
-            });
-          });
+         Object.keys(data[name]).sort().reverse().forEach(date => {
+  // 同じ日の記録を新しい順（逆順）で表示
+  const records = data[name][date];
+  records.slice().reverse().forEach((rec, reverseIndex) => {
+    if (rec.checkIn) {
+      // 実際の配列での正しいインデックスを計算（削除機能用）
+      const recordIndex = records.length - 1 - reverseIndex;
+      
+      hasRecords = true;
+      const div = document.createElement('div');
+      div.className = 'record';
+      
+      const info = document.createElement('div');
+      info.className = 'record-info';
+      
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'record-name';
+      nameDiv.textContent = name;
+      
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'record-time';
+      timeDiv.textContent = `${date} ${rec.checkIn}${rec.checkOut ? ` - ${rec.checkOut}` : ''}`;
+      
+      info.appendChild(nameDiv);
+      info.appendChild(timeDiv);
+      
+      const badge = document.createElement('div');
+      
+      // 日付チェックを追加
+      const isToday = date === today;
+      let statusClass, statusText;
+      
+      if (rec.checkOut) {
+        statusClass = 'status-completed';
+        statusText = '完了';
+      } else if (isToday) {
+        statusClass = 'status-working';
+        statusText = '勤務中';
+      } else {
+        statusClass = 'status-overtime';
+        statusText = '要確認';
+      }
+      
+      badge.className = `status-badge ${statusClass}`;
+      badge.textContent = statusText;
+      
+      div.appendChild(info);
+      div.appendChild(badge);
+      
+      // 長押し機能を追加（正しいrecordIndexを使用）
+      addLongPressToRecord(div, name, date, recordIndex);
+      
+      container.appendChild(div);
+    }
+  });
+});
         });
       
       // 既存のサマリーをチェック
