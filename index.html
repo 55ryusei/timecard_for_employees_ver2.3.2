@@ -1232,6 +1232,45 @@
 
   <script>
     const STORAGE_KEY = 'timeCards';
+// 効果音再生関数
+function playSuccessSound(type = 'in') {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    if (type === 'in') {
+      // 出勤時：明るい上昇音
+      playChord(audioContext, [523.25, 659.25, 783.99], 0.3, 0.1); // C5-E5-G5
+      setTimeout(() => playChord(audioContext, [783.99, 987.77, 1174.66], 0.3, 0.1), 150); // G5-B5-D6
+    } else {
+      // 退勤時：落ち着いた下降音
+      playChord(audioContext, [783.99, 659.25, 523.25], 0.3, 0.1); // G5-E5-C5
+      setTimeout(() => playChord(audioContext, [523.25, 415.30, 329.63], 0.3, 0.1), 150); // C5-Ab4-E4
+    }
+  } catch (error) {
+    console.log('音声再生に対応していません:', error);
+  }
+}
+
+function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
+  frequencies.forEach(freq => {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+    oscillator.type = 'sine';
+    
+    // 音量の設定（フェードイン・フェードアウト）
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+  });
+}
 
     // 日本時間取得（より正確な方法）
     function getJstDate() {
@@ -1350,6 +1389,13 @@
 
     // ドロップダウンメニューを表示
     function showDropdown(inputId, dropdownId) {
+      // 他のドロップダウンを先に閉じる
+      if (dropdownId === 'empNameDropdown') {
+        hideDropdown('searchEmpNameDropdown');
+      } else if (dropdownId === 'searchEmpNameDropdown') {
+        hideDropdown('empNameDropdown');
+      }
+      
       const input = document.getElementById(inputId);
       const dropdown = document.getElementById(dropdownId);
       const names = getExistingNames();
@@ -1791,6 +1837,7 @@
       }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      playSuccessSound(type);
       showAlert('記録しました', 'success');
       document.getElementById('empName').value = '';
       updateButtons('');
@@ -1981,6 +2028,14 @@
         showDropdown('empName', 'empNameDropdown');
       });
       
+      // エンターキーでプルダウンを閉じる
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          hideDropdown('empNameDropdown');
+          e.preventDefault(); // フォームの送信を防ぐ
+        }
+      });
+      
       searchInput.addEventListener('focus', () => {
         showDropdown('searchEmpName', 'searchEmpNameDropdown');
       });
@@ -1988,6 +2043,14 @@
       searchInput.addEventListener('input', () => {
         displayEmpRecords();
         showDropdown('searchEmpName', 'searchEmpNameDropdown');
+      });
+      
+      // 検索フィールドでもエンターキーでプルダウンを閉じる
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          hideDropdown('searchEmpNameDropdown');
+          e.preventDefault(); // フォームの送信を防ぐ
+        }
       });
       
       // 外部クリックでドロップダウンを閉じる
