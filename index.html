@@ -2012,6 +2012,8 @@
       showAlert('記録しました', 'success');
       document.getElementById('empName').value = '';
       updateButtons('');
+      // 名前フィールドのクリアボタンも非表示にする
+      updateClearButton('empName', 'clearEmpNameBtn');
       displayEmpRecords();
     }
 
