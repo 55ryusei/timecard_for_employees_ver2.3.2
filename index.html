@@ -194,6 +194,73 @@
       color: #8e8e93;
     }
 
+    /* 名前フィールドの右パディングを調整（クリアボタン用のスペース確保） */
+    #empName {
+      padding-right: 48px;
+    }
+
+    /* 検索フィールドの右パディングを調整（クリアボタン用のスペース確保） */
+    #searchEmpName {
+      padding-right: 48px;
+    }
+
+    /* クリアボタンのスタイル */
+    .clear-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: rgba(142, 142, 147, 0.15);
+      color: #8e8e93;
+      border-radius: 50%;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: none; /* 初期状態は非表示 */
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      z-index: 10;
+      /* ズーム防止設定 */
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      line-height: 1;
+    }
+
+    .clear-btn:hover {
+      background: rgba(142, 142, 147, 0.25);
+      color: #666;
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .clear-btn:active {
+      background: rgba(142, 142, 147, 0.35);
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    .clear-btn.show {
+      display: flex;
+      animation: fadeInScale 0.2s ease-out;
+    }
+
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: translateY(-50%) scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+      }
+    }
+
     /* ドロップダウンメニューのスタイル */
     .dropdown-menu {
       position: absolute;
@@ -784,6 +851,32 @@
       left: 100%;
     }
 
+    .summary-button.close-mode {
+      background: linear-gradient(135deg, #f87171 0%, #fbbf24 100%);
+      color: #ffffff;
+      box-shadow: 
+        0 6px 20px rgba(248, 113, 113, 0.3),
+        0 2px 8px rgba(248, 113, 113, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .summary-button.close-mode:hover {
+      background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 30px rgba(248, 113, 113, 0.4),
+        0 6px 16px rgba(248, 113, 113, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .summary-button.close-mode::before {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    }
+
+    .summary-button.close-mode:hover::before {
+      left: 100%;
+    }
+
     .summary-panel {
       background: rgba(255, 255, 255, 0.98);
       backdrop-filter: blur(20px);
@@ -1038,6 +1131,20 @@
         font-size: 1.1em;
       }
 
+      #empName {
+        padding-right: 52px;
+      }
+
+      #searchEmpName {
+        padding-right: 52px;
+      }
+
+      .clear-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+      }
+
       .btn-primary {
         padding: 20px 32px;
         font-size: 1.1em;
@@ -1200,6 +1307,7 @@
       <label for="empName">名前</label>
       <div class="input-wrapper">
         <input type="text" id="empName" placeholder="氏名を入力">
+        <button type="button" class="clear-btn" id="clearEmpNameBtn">×</button>
         <div class="dropdown-menu" id="empNameDropdown"></div>
       </div>
     </div>
@@ -1220,6 +1328,7 @@
       <label for="searchEmpName">検索</label>
       <div class="input-wrapper">
         <input type="text" id="searchEmpName" placeholder="名前で検索">
+        <button type="button" class="clear-btn" id="clearSearchBtn">×</button>
         <div class="dropdown-menu" id="searchEmpNameDropdown"></div>
       </div>
     </div>
@@ -1232,45 +1341,46 @@
 
   <script>
     const STORAGE_KEY = 'timeCards';
-// 効果音再生関数
-function playSuccessSound(type = 'in') {
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    
-    if (type === 'in') {
-      // 出勤時：明るい上昇音
-      playChord(audioContext, [523.25, 659.25, 783.99], 0.3, 0.1); // C5-E5-G5
-      setTimeout(() => playChord(audioContext, [783.99, 987.77, 1174.66], 0.3, 0.1), 150); // G5-B5-D6
-    } else {
-      // 退勤時：落ち着いた下降音
-      playChord(audioContext, [783.99, 659.25, 523.25], 0.3, 0.1); // G5-E5-C5
-      setTimeout(() => playChord(audioContext, [523.25, 415.30, 329.63], 0.3, 0.1), 150); // C5-Ab4-E4
-    }
-  } catch (error) {
-    console.log('音声再生に対応していません:', error);
-  }
-}
 
-function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
-  frequencies.forEach(freq => {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
-    oscillator.type = 'sine';
-    
-    // 音量の設定（フェードイン・フェードアウト）
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + duration);
-  });
-}
+    // 効果音再生関数
+    function playSuccessSound(type = 'in') {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        if (type === 'in') {
+          // 出勤時：明るい上昇音
+          playChord(audioContext, [523.25, 659.25, 783.99], 0.3, 0.1); // C5-E5-G5
+          setTimeout(() => playChord(audioContext, [783.99, 987.77, 1174.66], 0.3, 0.1), 150); // G5-B5-D6
+        } else {
+          // 退勤時：落ち着いた下降音
+          playChord(audioContext, [783.99, 659.25, 523.25], 0.3, 0.1); // G5-E5-C5
+          setTimeout(() => playChord(audioContext, [523.25, 415.30, 329.63], 0.3, 0.1), 150); // C5-Ab4-E4
+        }
+      } catch (error) {
+        console.log('音声再生に対応していません:', error);
+      }
+    }
+
+    function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
+      frequencies.forEach(freq => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+        oscillator.type = 'sine';
+        
+        // 音量の設定（フェードイン・フェードアウト）
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+      });
+    }
 
     // 日本時間取得（より正確な方法）
     function getJstDate() {
@@ -1387,6 +1497,20 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
       return namesWithLastDate.map(item => item.name);
     }
 
+    // クリアボタンの表示制御（汎用関数）
+    function updateClearButton(inputId, clearBtnId) {
+      const input = document.getElementById(inputId);
+      const clearBtn = document.getElementById(clearBtnId);
+      
+      if (input && clearBtn) {
+        if (input.value.trim()) {
+          clearBtn.classList.add('show');
+        } else {
+          clearBtn.classList.remove('show');
+        }
+      }
+    }
+
     // ドロップダウンメニューを表示
     function showDropdown(inputId, dropdownId) {
       // 他のドロップダウンを先に閉じる
@@ -1432,17 +1556,21 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
           item.appendChild(infoSpan);
           
           item.addEventListener('click', () => {
-          input.value = name;
-          hideDropdown(dropdownId);
-  
-          if (inputId === 'empName') {
-    // 出勤・退勤フィールドの場合：選択した名前でボタン状態を更新
-          updateButtons(name);
-         } else if (inputId === 'searchEmpName') {
-    // 検索フィールドの場合：検索結果のみ更新、ボタン状態は変更しない
-          displayEmpRecords();
-        }
-      });
+            input.value = name;
+            hideDropdown(dropdownId);
+    
+            if (inputId === 'empName') {
+              // 出勤・退勤フィールドの場合：選択した名前でボタン状態を更新
+              updateButtons(name);
+              // クリアボタンの表示制御を更新
+              updateClearButton('empName', 'clearEmpNameBtn');
+            } else if (inputId === 'searchEmpName') {
+              // 検索フィールドの場合：検索結果のみ更新、ボタン状態は変更しない
+              displayEmpRecords();
+              // クリアボタンの表示制御を更新
+              updateClearButton('searchEmpName', 'clearSearchBtn');
+            }
+          });
           
           dropdown.appendChild(item);
         });
@@ -1679,6 +1807,7 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
         }
       }, 5000);
     }
+
     function showMonthlySummary(name) {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       const userData = data[name];
@@ -1801,18 +1930,56 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
             '<span>夕方勤務時間</span>' +
             '<span>' + totalEvening.toFixed(1) + '時間</span>' +
           '</div>' +
-        '</div>' +
-
-        '<button class="close-summary" onclick="closeSummary()">閉じる</button>';
+        '</div>';
         
       summaryContainer.appendChild(summaryPanel);
+      
+      // サマリーボタンを「閉じる」ボタンに変更
+      const summaryButton = document.querySelector('.summary-button');
+      if (summaryButton) {
+        summaryButton.textContent = 'サマリーを閉じる';
+        summaryButton.classList.add('close-mode');
+        summaryButton.onclick = () => toggleSummary();
+      }
     }
 
-    // サマリーを閉じる
+    // サマリーのトグル機能
+    function toggleSummary() {
+      const panel = document.getElementById('summaryPanel');
+      const button = document.querySelector('.summary-button');
+      
+      if (panel && button) {
+        if (panel.style.display === 'block') {
+          // サマリーを閉じる
+          panel.style.display = 'none';
+          // ボタンテキストを元に戻す
+          const name = button.getAttribute('data-name');
+          if (name) {
+            button.textContent = `${name}さんの月次サマリーを表示`;
+            button.classList.remove('close-mode');
+            button.onclick = () => showMonthlySummary(name);
+          }
+        }
+      }
+    }
+
+    // サマリーを閉じる（既存の検索ロジックとの互換性のため）
     function closeSummary() {
       const panel = document.getElementById('summaryPanel');
+      const button = document.querySelector('.summary-button');
+      
       if (panel) {
         panel.style.display = 'none';
+      }
+      
+      if (button) {
+        // ボタンテキストを元に戻す
+        const name = button.getAttribute('data-name');
+        if (name) {
+          button.textContent = `${name}さんの月次サマリーを表示`;
+          button.classList.remove('close-mode');
+          button.onclick = () => showMonthlySummary(name);
+        }
       }
     }
 
@@ -1911,61 +2078,61 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
           }
           
          Object.keys(data[name]).sort().reverse().forEach(date => {
-  // 同じ日の記録を新しい順（逆順）で表示
-  const records = data[name][date];
-  records.slice().reverse().forEach((rec, reverseIndex) => {
-    if (rec.checkIn) {
-      // 実際の配列での正しいインデックスを計算（削除機能用）
-      const recordIndex = records.length - 1 - reverseIndex;
-      
-      hasRecords = true;
-      const div = document.createElement('div');
-      div.className = 'record';
-      
-      const info = document.createElement('div');
-      info.className = 'record-info';
-      
-      const nameDiv = document.createElement('div');
-      nameDiv.className = 'record-name';
-      nameDiv.textContent = name;
-      
-      const timeDiv = document.createElement('div');
-      timeDiv.className = 'record-time';
-      timeDiv.textContent = `${date} ${rec.checkIn}${rec.checkOut ? ` - ${rec.checkOut}` : ''}`;
-      
-      info.appendChild(nameDiv);
-      info.appendChild(timeDiv);
-      
-      const badge = document.createElement('div');
-      
-      // 日付チェックを追加
-      const isToday = date === today;
-      let statusClass, statusText;
-      
-      if (rec.checkOut) {
-        statusClass = 'status-completed';
-        statusText = '完了';
-      } else if (isToday) {
-        statusClass = 'status-working';
-        statusText = '勤務中';
-      } else {
-        statusClass = 'status-overtime';
-        statusText = '要確認';
+    // 同じ日の記録を新しい順（逆順）で表示
+    const records = data[name][date];
+    records.slice().reverse().forEach((rec, reverseIndex) => {
+      if (rec.checkIn) {
+        // 実際の配列での正しいインデックスを計算（削除機能用）
+        const recordIndex = records.length - 1 - reverseIndex;
+        
+        hasRecords = true;
+        const div = document.createElement('div');
+        div.className = 'record';
+        
+        const info = document.createElement('div');
+        info.className = 'record-info';
+        
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'record-name';
+        nameDiv.textContent = name;
+        
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'record-time';
+        timeDiv.textContent = `${date} ${rec.checkIn}${rec.checkOut ? ` - ${rec.checkOut}` : ''}`;
+        
+        info.appendChild(nameDiv);
+        info.appendChild(timeDiv);
+        
+        const badge = document.createElement('div');
+        
+        // 日付チェックを追加
+        const isToday = date === today;
+        let statusClass, statusText;
+        
+        if (rec.checkOut) {
+          statusClass = 'status-completed';
+          statusText = '完了';
+        } else if (isToday) {
+          statusClass = 'status-working';
+          statusText = '勤務中';
+        } else {
+          statusClass = 'status-overtime';
+          statusText = '要確認';
+        }
+        
+        badge.className = `status-badge ${statusClass}`;
+        badge.textContent = statusText;
+        
+        div.appendChild(info);
+        div.appendChild(badge);
+        
+        // 長押し機能を追加（正しいrecordIndexを使用）
+        addLongPressToRecord(div, name, date, recordIndex);
+        
+        container.appendChild(div);
       }
-      
-      badge.className = `status-badge ${statusClass}`;
-      badge.textContent = statusText;
-      
-      div.appendChild(info);
-      div.appendChild(badge);
-      
-      // 長押し機能を追加（正しいrecordIndexを使用）
-      addLongPressToRecord(div, name, date, recordIndex);
-      
-      container.appendChild(div);
-    }
+    });
   });
-});
         });
       
       // 既存のサマリーをチェック
@@ -2000,11 +2167,14 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
           summaryButton.className = 'summary-button';
           summaryButton.textContent = `${searchedNames[0]}さんの月次サマリーを表示`;
           summaryButton.onclick = () => showMonthlySummary(searchedNames[0]);
+          // データ属性で名前を保存（後でトグル機能で使用）
+          summaryButton.setAttribute('data-name', searchedNames[0]);
           document.getElementById('summaryContainer').appendChild(summaryButton);
         } else {
           // ボタンが既にある場合は内容を更新
           existingButton.textContent = `${searchedNames[0]}さんの月次サマリーを表示`;
           existingButton.onclick = () => showMonthlySummary(searchedNames[0]);
+          existingButton.setAttribute('data-name', searchedNames[0]);
         }
       } else {
         // 1人以外の場合はボタンを削除
@@ -2026,15 +2196,21 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
       const searchInput = document.getElementById('searchEmpName');
       const btnClockIn = document.getElementById('btnClockIn');
       const btnClockOut = document.getElementById('btnClockOut');
+      const clearSearchBtn = document.getElementById('clearSearchBtn');
+      const clearEmpNameBtn = document.getElementById('clearEmpNameBtn');
       
       // ドロップダウン機能の設定
       nameInput.addEventListener('focus', () => {
         showDropdown('empName', 'empNameDropdown');
+        // フォーカス時にもクリアボタンの表示状態をチェック
+        updateClearButton('empName', 'clearEmpNameBtn');
       });
       
       nameInput.addEventListener('input', () => {
         updateButtons(nameInput.value.trim());
         showDropdown('empName', 'empNameDropdown');
+        // クリアボタンの表示制御
+        updateClearButton('empName', 'clearEmpNameBtn');
       });
       
       // エンターキーでプルダウンを閉じる
@@ -2047,11 +2223,15 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
       
       searchInput.addEventListener('focus', () => {
         showDropdown('searchEmpName', 'searchEmpNameDropdown');
+        // フォーカス時にもクリアボタンの表示状態をチェック
+        updateClearButton('searchEmpName', 'clearSearchBtn');
       });
       
       searchInput.addEventListener('input', () => {
         displayEmpRecords();
         showDropdown('searchEmpName', 'searchEmpNameDropdown');
+        // クリアボタンの表示制御
+        updateClearButton('searchEmpName', 'clearSearchBtn');
       });
       
       // 検索フィールドでもエンターキーでプルダウンを閉じる
@@ -2060,6 +2240,34 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
           hideDropdown('searchEmpNameDropdown');
           e.preventDefault(); // フォームの送信を防ぐ
         }
+      });
+      
+      // 名前フィールドのクリアボタンのクリックイベント
+      clearEmpNameBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        nameInput.value = '';
+        clearEmpNameBtn.classList.remove('show');
+        hideDropdown('empNameDropdown');
+        updateButtons(''); // ボタン状態をリセット
+        
+        // 名前フィールドにフォーカスを戻す
+        nameInput.focus();
+      });
+      
+      // 検索フィールドのクリアボタンのクリックイベント
+      clearSearchBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        searchInput.value = '';
+        clearSearchBtn.classList.remove('show');
+        hideDropdown('searchEmpNameDropdown');
+        displayEmpRecords(); // 検索結果をリセット
+        
+        // 検索フィールドにフォーカスを戻す
+        searchInput.focus();
       });
       
       // 外部クリックでドロップダウンを閉じる
@@ -2149,6 +2357,10 @@ function playChord(audioContext, frequencies, volume = 0.3, duration = 0.2) {
       
       displayEmpRecords(); 
       updateButtons('');
+      
+      // 初期状態のクリアボタン表示制御
+      updateClearButton('empName', 'clearEmpNameBtn');
+      updateClearButton('searchEmpName', 'clearSearchBtn');
     });
   </script>
 </body>
