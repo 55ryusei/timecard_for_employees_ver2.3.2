@@ -1511,13 +1511,8 @@
       }
     }
 
-    // ドロップダウン制御用のフラグ
-    let isDropdownActionInProgress = false;
-
     // ドロップダウンメニューを表示
     function showDropdown(inputId, dropdownId) {
-      if (isDropdownActionInProgress) return;
-      
       // 他のドロップダウンを先に閉じる
       if (dropdownId === 'empNameDropdown') {
         hideDropdown('searchEmpNameDropdown');
@@ -1560,8 +1555,7 @@
           item.appendChild(nameSpan);
           item.appendChild(infoSpan);
           
-          const handleItemClick = () => {
-            isDropdownActionInProgress = true;
+          item.addEventListener('click', () => {
             input.value = name;
             hideDropdown(dropdownId);
     
@@ -1576,27 +1570,6 @@
               // クリアボタンの表示制御を更新
               updateClearButton('searchEmpName', 'clearSearchBtn');
             }
-            
-            // フラグをリセット
-            setTimeout(() => {
-              isDropdownActionInProgress = false;
-            }, 300);
-          };
-
-          // iPad対応：touchend のみ使用（clickとの重複を避ける）
-          item.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleItemClick();
-          });
-          
-          // デスクトップ用のclickイベント（タッチデバイスでは発火しない）
-          item.addEventListener('click', (e) => {
-            // タッチイベントがある場合はclickを無視
-            if (e.type === 'click' && 'ontouchstart' in window) {
-              return;
-            }
-            handleItemClick();
           });
           
           dropdown.appendChild(item);
@@ -2230,20 +2203,16 @@
       
       // ドロップダウン機能の設定
       nameInput.addEventListener('focus', () => {
-        if (!isDropdownActionInProgress) {
-          showDropdown('empName', 'empNameDropdown');
-          // フォーカス時にもクリアボタンの表示状態をチェック
-          updateClearButton('empName', 'clearEmpNameBtn');
-        }
+        showDropdown('empName', 'empNameDropdown');
+        // フォーカス時にもクリアボタンの表示状態をチェック
+        updateClearButton('empName', 'clearEmpNameBtn');
       });
       
       nameInput.addEventListener('input', () => {
-        if (!isDropdownActionInProgress) {
-          updateButtons(nameInput.value.trim());
-          showDropdown('empName', 'empNameDropdown');
-          // クリアボタンの表示制御
-          updateClearButton('empName', 'clearEmpNameBtn');
-        }
+        updateButtons(nameInput.value.trim());
+        showDropdown('empName', 'empNameDropdown');
+        // クリアボタンの表示制御
+        updateClearButton('empName', 'clearEmpNameBtn');
       });
       
       // エンターキーでプルダウンを閉じる
@@ -2261,12 +2230,10 @@
       });
       
       searchInput.addEventListener('input', () => {
-        if (!isDropdownActionInProgress) {
-          displayEmpRecords();
-          showDropdown('searchEmpName', 'searchEmpNameDropdown');
-          // クリアボタンの表示制御
-          updateClearButton('searchEmpName', 'clearSearchBtn');
-        }
+        displayEmpRecords();
+        showDropdown('searchEmpName', 'searchEmpNameDropdown');
+        // クリアボタンの表示制御
+        updateClearButton('searchEmpName', 'clearSearchBtn');
       });
       
       // 検索フィールドでもエンターキーでプルダウンを閉じる
@@ -2305,26 +2272,12 @@
         searchInput.focus();
       });
       
-      // 外部クリック・タッチでドロップダウンを閉じる（iPad対応改善）
-      const hideDropdownsOnOutsideTouch = (e) => {
-        if (isDropdownActionInProgress) return;
-        
+      // 外部クリックでドロップダウンを閉じる
+      document.addEventListener('click', (e) => {
         if (!e.target.closest('.input-wrapper')) {
-          isDropdownActionInProgress = true;
           hideAllDropdowns();
-          setTimeout(() => {
-            isDropdownActionInProgress = false;
-          }, 300);
         }
-      };
-      
-      // タッチデバイス用（iPadなど）
-      document.addEventListener('touchstart', hideDropdownsOnOutsideTouch, { passive: true });
-      
-      // デスクトップ用（タッチデバイスでない場合のみ）
-      if (!('ontouchstart' in window)) {
-        document.addEventListener('click', hideDropdownsOnOutsideTouch);
-      }
+      });
       
       // ESCキーでドロップダウンを閉じる
       document.addEventListener('keydown', (e) => {
