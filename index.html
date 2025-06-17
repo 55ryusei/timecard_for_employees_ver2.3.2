@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>勤怠管理</title>
   <style>
     * {
@@ -21,6 +21,14 @@
       align-items: center;
       justify-content: flex-start;
       color: #1e293b;
+      /* iPad ズーム機能を無効化 */
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
 
     .logo {
@@ -66,6 +74,8 @@
       opacity: 0;
       animation: fadeInUp 0.8s ease-out 0.2s forwards;
       position: relative;
+      /* ズーム防止設定 */
+      touch-action: manipulation;
     }
 
     .container::before {
@@ -162,6 +172,12 @@
       box-shadow: 
         0 4px 12px rgba(0, 0, 0, 0.02),
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      /* 入力フィールドではテキスト選択を有効にする */
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+      touch-action: manipulation;
     }
 
     input[type="text"]:focus {
@@ -309,6 +325,12 @@
       min-height: 48px;
       -webkit-tap-highlight-color: transparent;
       backdrop-filter: blur(10px);
+      /* ズーム防止設定 */
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
 
     .btn-primary {
